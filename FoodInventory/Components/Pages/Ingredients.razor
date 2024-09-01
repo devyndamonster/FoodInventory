@@ -1,0 +1,66 @@
+﻿@page "/ingredients"
+@using FoodInventory.Models
+@inject IDialogService DialogService
+@rendermode InteractiveServer
+
+<PageTitle>Ingredients</PageTitle>
+
+<MudDataGrid Items="@ingredients.Take(4)">
+    <Columns>
+        <PropertyColumn Property="x => x.Name" Title="Name" />
+        <PropertyColumn Property="x => x.Id" Title="Id" />
+        <TemplateColumn>
+            <CellTemplate>
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" OnClick="@((e) => DeleteIngredient(@context.Item.Id))"></MudIconButton>
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+</MudDataGrid>
+
+<MudGrid Justify="Justify.FlexEnd" Style="padding: 10px">
+    <MudItem>
+        <MudFab Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Label="Add Ingredient" OnClick="OpenDialogAsync" />
+    </MudItem>
+</MudGrid>
+
+
+
+@code {
+
+    private List<Ingredient> ingredients = 
+    [
+        new Ingredient 
+        { 
+            Name = "Flour", 
+            Id = 1
+        },
+        new Ingredient 
+        { 
+            Name = "Sugar", 
+            Id = 2 
+        }
+    ];
+
+    private void AddIngredient(string ingredient)
+    {
+        var maxId = ingredients.Any() ? ingredients.Max(x => x.Id) : 0;
+        ingredients.Add(new Ingredient { Name = ingredient, Id = maxId + 1 });
+    }
+
+    private void DeleteIngredient(int id)
+    {
+        ingredients.Remove(ingredients.First(x => x.Id == id));
+    }
+
+    private async Task OpenDialogAsync()
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<IngredientDialog>("Add Ingredient", options);
+        var result = await dialog.Result;
+
+        if (result is not null && !result.Canceled && result.Data is Ingredient ingredient)
+        {
+            AddIngredient(ingredient.Name);
+        }
+    }
+}

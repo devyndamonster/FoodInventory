@@ -1,0 +1,37 @@
+﻿@using FoodInventory.Models
+
+<MudDialog>
+    <TitleContent>
+        Add Ingredient
+    </TitleContent>
+    <DialogContent>
+        <MudForm>
+            <MudTextField @bind-Value="_ingredientName" Immediate="true" Label="Ingredient Name" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">Add</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private MudDialogInstance MudDialog { get; set; } = null!;
+
+    private string _ingredientName = "";
+
+    private void Submit()
+    {
+        var ingredient = new Ingredient
+        {
+            Name = _ingredientName,
+        };
+
+        MudDialog.Close(DialogResult.Ok(ingredient));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}
+
+
