@@ -1,9 +1,9 @@
 ﻿namespace FoodInventory.Models
 {
-    public class Ingredient
+    public record Ingredient
     {
-        public required string Name { get; set; }
-
         public int Id { get; set; }
+
+        public required string Name { get; set; }
     }
 }

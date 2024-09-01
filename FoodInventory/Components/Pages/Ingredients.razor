@@ -1,6 +1,8 @@
 ﻿@page "/ingredients"
+@using FoodInventory.Data
 @using FoodInventory.Models
 @inject IDialogService DialogService
+@inject InventoryRepository InventoryRepository
 @rendermode InteractiveServer
 
 <PageTitle>Ingredients</PageTitle>
@@ -27,28 +29,24 @@
 
 @code {
 
-    private List<Ingredient> ingredients = 
-    [
-        new Ingredient 
-        { 
-            Name = "Flour", 
-            Id = 1
-        },
-        new Ingredient 
-        { 
-            Name = "Sugar", 
-            Id = 2 
-        }
-    ];
+    private List<Ingredient> ingredients { get; set; } = new List<Ingredient>();
 
-    private void AddIngredient(string ingredient)
+    protected override async Task OnInitializedAsync()
     {
-        var maxId = ingredients.Any() ? ingredients.Max(x => x.Id) : 0;
-        ingredients.Add(new Ingredient { Name = ingredient, Id = maxId + 1 });
+        var loadedIngredients = await InventoryRepository.GetIngredients();
+        ingredients = loadedIngredients.ToList();
     }
 
-    private void DeleteIngredient(int id)
+    private async Task AddIngredient(string ingredient)
     {
+        var ingredientModel = new Ingredient { Name = ingredient };
+        var insertedIngredient = await InventoryRepository.AddIngredient(ingredientModel);
+        ingredients.Add(insertedIngredient);
+    }
+
+    private async Task DeleteIngredient(int id)
+    {
+        await InventoryRepository.DeleteIngredient(id);
         ingredients.Remove(ingredients.First(x => x.Id == id));
     }
 
@@ -60,7 +58,7 @@
 
         if (result is not null && !result.Canceled && result.Data is Ingredient ingredient)
         {
-            AddIngredient(ingredient.Name);
+            await AddIngredient(ingredient.Name);
         }
     }
 }

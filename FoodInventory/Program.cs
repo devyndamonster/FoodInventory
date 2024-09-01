@@ -1,7 +1,17 @@
 using FoodInventory.Components;
+using FoodInventory.Data;
+using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+string connectionString = "Data Source=Inventory.db";
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+{
+    options.UseSqlite(connectionString);
+});
+
+builder.Services.AddSingleton(new InventoryRepository(connectionString));
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
