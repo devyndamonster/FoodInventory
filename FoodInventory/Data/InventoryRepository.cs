@@ -21,9 +21,9 @@ namespace FoodInventory.Data
             var query =
                 @"
                     INSERT INTO Ingredients 
-                        (Name)
+                        (Name, Weight, BestBy)
                     VALUES 
-                        (@Name);
+                        (@Name, @Weight, @BestBy);
                     SELECT 
                         last_insert_rowid() as Id;
                 ";
@@ -42,7 +42,9 @@ namespace FoodInventory.Data
             @"
                 SELECT 
                     Id, 
-                    Name 
+                    Name,
+                    Weight,
+                    BestBy
                 FROM Ingredients
             ";
 
@@ -61,6 +63,21 @@ namespace FoodInventory.Data
                 ";
 
             await connection.ExecuteAsync(query, new { Id = id });
+        }
+
+        public async Task UpdateIngredient(Ingredient ingredient)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+
+            var query =
+                @"
+                    UPDATE Ingredients
+                    SET Name = @Name, Weight = @Weight, BestBy = @BestBy
+                    WHERE Id = @Id
+                ";
+
+            await connection.ExecuteAsync(query, ingredient);
         }
     }
 }

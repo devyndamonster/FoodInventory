@@ -2,16 +2,18 @@
 
 <MudDialog>
     <TitleContent>
-        Add Ingredient
+        @(ActionText) Ingredient
     </TitleContent>
     <DialogContent>
         <MudForm>
-            <MudTextField @bind-Value="_ingredientName" Immediate="true" Label="Ingredient Name" />
+            <MudTextField @bind-Value="Ingredient.Name" Immediate="true" Label="Ingredient Name" />
+            <MudNumericField @bind-Value="Ingredient.Weight" Immediate="true" Label="Weight (g)" />
+            <MudDatePicker @bind-Date="Ingredient.BestBy" Label="Best By" />
         </MudForm>
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Cancel</MudButton>
-        <MudButton Color="Color.Primary" OnClick="Submit">Add</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">@(ActionText)</MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -19,16 +21,15 @@
     [CascadingParameter]
     private MudDialogInstance MudDialog { get; set; } = null!;
 
-    private string _ingredientName = "";
+    [Parameter]
+    public required Ingredient Ingredient { get; set; }
+
+    [Parameter]
+    public required string ActionText { get; set; }
 
     private void Submit()
     {
-        var ingredient = new Ingredient
-        {
-            Name = _ingredientName,
-        };
-
-        MudDialog.Close(DialogResult.Ok(ingredient));
+        MudDialog.Close(DialogResult.Ok(Ingredient));
     }
 
     private void Cancel() => MudDialog.Cancel();
