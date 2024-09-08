@@ -19,14 +19,31 @@ namespace FoodInventory.Data
             connection.Open();
 
             var query =
-                @"
-                    INSERT INTO Ingredients 
-                        (Name, Weight, BestBy)
-                    VALUES 
-                        (@Name, @Weight, @BestBy);
-                    SELECT 
-                        last_insert_rowid() as Id;
-                ";
+            @"
+                INSERT INTO Ingredients 
+                (
+                    Name, 
+                    IngredientTypeId,
+                    Weight, 
+                    BestBy,
+                    FrozenOn,
+                    ThawedOn,
+                    OpenedOn
+                )
+                VALUES 
+                (
+                    @Name, 
+                    @IngredientTypeId,
+                    @Weight, 
+                    @BestBy,
+                    @FrozenOn,
+                    @ThawedOn,
+                    @OpenedOn
+                );
+
+                SELECT 
+                    last_insert_rowid() as Id;
+            ";
 
             var id = await connection.QueryFirstOrDefaultAsync<int>(query, ingredient);
 
@@ -43,8 +60,12 @@ namespace FoodInventory.Data
                 SELECT 
                     Id, 
                     Name,
+                    IngredientTypeId,
                     Weight,
-                    BestBy
+                    BestBy,
+                    FrozenOn,
+                    ThawedOn,
+                    OpenedOn
                 FROM Ingredients
             ";
 
@@ -57,10 +78,10 @@ namespace FoodInventory.Data
             connection.Open();
 
             var query =
-                @"
-                    DELETE FROM Ingredients
-                    WHERE Id = @Id
-                ";
+            @"
+                DELETE FROM Ingredients
+                WHERE Id = @Id
+            ";
 
             await connection.ExecuteAsync(query, new { Id = id });
         }
@@ -71,13 +92,75 @@ namespace FoodInventory.Data
             connection.Open();
 
             var query =
-                @"
-                    UPDATE Ingredients
-                    SET Name = @Name, Weight = @Weight, BestBy = @BestBy
-                    WHERE Id = @Id
-                ";
+            @"
+                UPDATE Ingredients
+                SET 
+                    Name = @Name, 
+                    IngredientTypeId = @IngredientTypeId,
+                    Weight = @Weight, 
+                    BestBy = @BestBy,
+                    FrozenOn = @FrozenOn,
+                    ThawedOn = @ThawedOn,
+                    OpenedOn = @OpenedOn
+                WHERE Id = @Id
+            ";
 
             await connection.ExecuteAsync(query, ingredient);
+        }
+
+        public async Task<IEnumerable<IngredientType>> GetIngredientTypes()
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+
+            var query =
+            @"
+                SELECT 
+                    Id, 
+                    Name
+                FROM IngredientTypes
+            ";
+
+            return await connection.QueryAsync<IngredientType>(query);
+        }
+
+        public async Task<IngredientType> AddIngredientType(IngredientType ingredientType)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+
+            var query =
+            @"
+                INSERT INTO IngredientTypes 
+                (
+                    Name
+                )
+                VALUES 
+                (
+                    @Name
+                );
+
+                SELECT 
+                    last_insert_rowid() as Id;
+            ";
+
+            var id = await connection.QueryFirstOrDefaultAsync<int>(query, ingredientType);
+
+            return ingredientType with { Id = id };
+        }
+
+        public async Task DeleteIngredientType(int id)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+
+            var query =
+            @"
+                DELETE FROM IngredientTypes
+                WHERE Id = @Id
+            ";
+
+            await connection.ExecuteAsync(query, new { Id = id });
         }
     }
 }

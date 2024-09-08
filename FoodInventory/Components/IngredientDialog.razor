@@ -7,8 +7,28 @@
     <DialogContent>
         <MudForm>
             <MudTextField @bind-Value="Ingredient.Name" Immediate="true" Label="Ingredient Name" />
+            <MudAutocomplete @bind-Value="_selectedIngredientType" Label="Type" SearchFunc="SearchIngredientTypes" CoerceValue="true" />
             <MudNumericField @bind-Value="Ingredient.Weight" Immediate="true" Label="Weight (g)" />
-            <MudDatePicker @bind-Date="Ingredient.BestBy" Label="Best By" />
+            <MudDatePicker @ref="_bestByPicker" @bind-Date="Ingredient.BestBy" Label="Best By" ShowToolbar="false" AutoClose="true" TransformOrigin="Origin.BottomLeft">
+                <PickerActions>
+                    <MudButton OnClick="@(() => _bestByPicker.ClearAsync())">Clear</MudButton>
+                </PickerActions>
+            </MudDatePicker>
+            <MudDatePicker @ref="_frozenOnDatePicker" @bind-Date="Ingredient.FrozenOn" Label="Frozen On" ShowToolbar="false" AutoClose="true" TransformOrigin="Origin.BottomLeft">
+                <PickerActions>
+                    <MudButton OnClick="@(() => _frozenOnDatePicker.ClearAsync())">Clear</MudButton>
+                </PickerActions>
+            </MudDatePicker>
+            <MudDatePicker @ref="_thawedOnDatePicker" @bind-Date="Ingredient.ThawedOn" Label="Thawed On" ShowToolbar="false" AutoClose="true" TransformOrigin="Origin.BottomLeft">
+                <PickerActions>
+                    <MudButton OnClick="@(() => _thawedOnDatePicker.ClearAsync())">Clear</MudButton>
+                </PickerActions>
+            </MudDatePicker>
+            <MudDatePicker @ref="_openedOnDatePicker" @bind-Date="Ingredient.OpenedOn" Label="Opened On" ShowToolbar="false" AutoClose="true" TransformOrigin="Origin.BottomLeft">
+                <PickerActions>
+                    <MudButton OnClick="@(() => _openedOnDatePicker.ClearAsync())">Clear</MudButton>
+                </PickerActions>
+            </MudDatePicker>
         </MudForm>
     </DialogContent>
     <DialogActions>
@@ -25,14 +45,59 @@
     public required Ingredient Ingredient { get; set; }
 
     [Parameter]
+    public required IEnumerable<IngredientType> IngredientTypes { get; set; }
+
+    [Parameter]
     public required string ActionText { get; set; }
+
+    private IEnumerable<string> _ingredientOptions => IngredientTypes.Select(x => x.Name);
+
+    private string _selectedIngredientType = string.Empty;
+
+    private MudDatePicker _bestByPicker = null!;
+
+    private MudDatePicker _frozenOnDatePicker = null!;
+
+    private MudDatePicker _thawedOnDatePicker = null!;
+
+    private MudDatePicker _openedOnDatePicker = null!;
+
+    protected override void OnInitialized()
+    {
+        _selectedIngredientType = IngredientTypes.FirstOrDefault(x => x.Id == Ingredient.IngredientTypeId)?.Name ?? string.Empty;
+    }
 
     private void Submit()
     {
-        MudDialog.Close(DialogResult.Ok(Ingredient));
+        var result = new InventoryDialogResult
+        {
+            Ingredient = Ingredient,
+            SelectedIngredientTypeName = _selectedIngredientType
+        };
+
+        MudDialog.Close(DialogResult.Ok(result));
     }
 
     private void Cancel() => MudDialog.Cancel();
+
+    private Task<IEnumerable<string>> SearchIngredientTypes(string value, CancellationToken token)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return Task.FromResult(_ingredientOptions);
+        }
+        
+        var ingredientOptions = _ingredientOptions.Where(x => x.Contains(value, StringComparison.OrdinalIgnoreCase));
+
+        return Task.FromResult(ingredientOptions);
+    }
+
+    public class InventoryDialogResult
+    {
+        public required Ingredient Ingredient { get; set; }
+
+        public string? SelectedIngredientTypeName { get; set; }
+    }
 }
 
 

@@ -8,6 +8,10 @@ namespace FoodInventory.Data
     {
         public DbSet<Ingredient> Ingredients { get; set; }
 
+        public DbSet<IngredientType> IngredientTypes { get; set; }
+
+        public DbSet<Recipe> Recipes { get; set; }
+
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
         {
         }

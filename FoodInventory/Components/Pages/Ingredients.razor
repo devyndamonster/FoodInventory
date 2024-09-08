@@ -1,6 +1,7 @@
 ﻿@page "/ingredients"
 @using FoodInventory.Data
 @using FoodInventory.Models
+@using static FoodInventory.Components.IngredientDialog
 @inject IDialogService DialogService
 @inject InventoryRepository InventoryRepository
 @rendermode InteractiveServer
@@ -11,7 +12,7 @@
     <Columns>
         <PropertyColumn Property="x => x.Name" Title="Name" />
         <PropertyColumn Property="x => x.Weight" Title="Weight (g)" />
-        <TemplateColumn Title="Best By" SortBy="x => x.BestBy" Sortable="true">
+        <TemplateColumn Title="Best By" SortBy="x => x.BestBy ?? DateTime.MaxValue" Sortable="true">
             <CellTemplate>
                 @(@context.Item.BestBy?.ToShortDateString() ?? "None")
             </CellTemplate>
@@ -72,8 +73,11 @@
 
         var actionText = currentIngredient is null ? "Add" : "Edit";
 
+        var ingredientTypes = await InventoryRepository.GetIngredientTypes();
+
         var parameters = new DialogParameters<IngredientDialog> { 
             { x => x.Ingredient, ingredientInput },
+            { x => x.IngredientTypes, ingredientTypes },
             { x => x.ActionText, actionText}
         };
         
@@ -82,15 +86,24 @@
         var dialog = await DialogService.ShowAsync<IngredientDialog>($"{actionText} Ingredient", parameters, options);
         var result = await dialog.Result;
 
-        if (result is not null && !result.Canceled && result.Data is Ingredient ingredient)
+        if (result is not null && !result.Canceled && result.Data is InventoryDialogResult dialogResult)
         {
-            if(ingredient.Id == 0)
+            var selectedIngredientType = ingredientTypes.FirstOrDefault(x => x.Name.Equals(dialogResult.SelectedIngredientTypeName, StringComparison.OrdinalIgnoreCase));
+
+            if (selectedIngredientType is null && !string.IsNullOrEmpty(dialogResult.SelectedIngredientTypeName))
             {
-                await AddIngredient(ingredient);
+                selectedIngredientType = await InventoryRepository.AddIngredientType(new IngredientType { Name = dialogResult.SelectedIngredientTypeName });
+            }
+
+            dialogResult.Ingredient.IngredientTypeId = selectedIngredientType?.Id;
+
+            if(dialogResult.Ingredient.Id == 0)
+            {
+                await AddIngredient(dialogResult.Ingredient);
             }
             else
             {
-                await UpdateIngredient(ingredient);
+                await UpdateIngredient(dialogResult.Ingredient);
             }
         }
     }
