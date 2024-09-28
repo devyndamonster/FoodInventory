@@ -12,6 +12,8 @@ namespace FoodInventory.Data
 
         public DbSet<Recipe> Recipes { get; set; }
 
+        public DbSet<RecipeToIngredient> RecipeToIngredients { get; set; }
+
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
         {
         }

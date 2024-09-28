@@ -162,5 +162,143 @@ namespace FoodInventory.Data
 
             await connection.ExecuteAsync(query, new { Id = id });
         }
+
+        public async Task<IEnumerable<Recipe>> GetRecipes()
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+
+            var query =
+            @"
+                SELECT 
+                    Id, 
+                    Name
+                FROM Recipes
+            ";
+
+            return await connection.QueryAsync<Recipe>(query);
+        }
+
+        public async Task<Recipe> AddRecipe(Recipe recipe)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+
+            var query =
+            @"
+                INSERT INTO Recipes 
+                (
+                    Name
+                )
+                VALUES 
+                (
+                    @Name
+                );
+
+                SELECT 
+                    last_insert_rowid() as Id;
+            ";
+
+            var id = await connection.QueryFirstOrDefaultAsync<int>(query, recipe);
+
+            recipe.Id = id;
+            recipe.Ingredients = recipe.Ingredients.Select(i => i with { RecipeId = id }).ToList();
+
+            foreach (var recipeToIngredient in recipe.Ingredients)
+            {
+                query =
+                @"
+                    INSERT INTO RecipeToIngredients
+                    (
+                        RecipeId,
+                        IngredientId,
+                        RequiredWeight
+                    )
+                    VALUES
+                    (
+                        @RecipeId,
+                        @IngredientId,
+                        @RequiredWeight
+                    );
+
+                    SELECT 
+                        last_insert_rowid() as Id;
+                ";
+
+                var ingredientId = await connection.QueryFirstOrDefaultAsync<int>(query, recipeToIngredient);
+
+                recipeToIngredient.Id = ingredientId;
+            }
+
+            return recipe;
+        }
+
+        public async Task<Recipe> UpdateRecipe(Recipe recipe)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+
+            var query =
+            @"
+                UPDATE Recipes
+                SET 
+                    Name = @Name
+                WHERE Id = @Id
+            ";
+
+            await connection.ExecuteAsync(query, recipe);
+
+            query =
+            @"
+                DELETE FROM RecipeToIngredients
+                WHERE RecipeId = @RecipeId
+            ";
+
+            await connection.ExecuteAsync(query, new { RecipeId = recipe.Id });
+
+            recipe.Ingredients = recipe.Ingredients.Select(i => i with { RecipeId = recipe.Id }).ToList();
+
+            foreach (var recipeToIngredient in recipe.Ingredients)
+            {
+                query =
+                @"
+                    INSERT INTO RecipeToIngredients
+                    (
+                        RecipeId,
+                        IngredientId,
+                        RequiredWeight
+                    )
+                    VALUES
+                    (
+                        @RecipeId,
+                        @IngredientId,
+                        @RequiredWeight
+                    );
+
+                    SELECT 
+                        last_insert_rowid() as Id;
+                ";
+
+                var ingredientId = await connection.QueryFirstOrDefaultAsync<int>(query, recipeToIngredient);
+
+                recipeToIngredient.Id = ingredientId;
+            }
+
+            return recipe;
+        }
+
+        public async Task DeleteRecipe(int id)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+
+            var query =
+            @"
+                DELETE FROM Recipes
+                WHERE Id = @Id
+            ";
+
+            await connection.ExecuteAsync(query, new { Id = id });
+        }
     }
 }

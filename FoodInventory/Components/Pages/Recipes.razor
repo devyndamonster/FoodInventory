@@ -1,0 +1,169 @@
+﻿@page "/recipes"
+@using FoodInventory.Data
+@using FoodInventory.Models
+@inject InventoryRepository InventoryRepository
+
+<PageTitle>Recipes</PageTitle>
+
+@if (openedRecipe is null)
+{
+    <MudDataGrid Items="@recipes" Breakpoint="Breakpoint.None">
+        <Columns>
+            <PropertyColumn Property="x => x.Name" Title="Name" />
+            <TemplateColumn>
+                <CellTemplate>
+                    <MudButtonGroup>
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" OnClick="@((e) => OpenRecipePage(@context.Item))"></MudIconButton>
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" OnClick="@((e) => DeleteRecipe(@context.Item.Id))"></MudIconButton>
+                    </MudButtonGroup>
+                </CellTemplate>
+            </TemplateColumn>
+        </Columns>
+    </MudDataGrid>
+
+    <MudGrid Justify="Justify.FlexEnd" Style="padding: 10px">
+        <MudItem>
+            <MudFab Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Label="Add Recipe" OnClick="@(e => OpenRecipePage())" />
+        </MudItem>
+    </MudGrid>
+}
+else {
+    <MudGrid>
+        <MudItem xs="12">
+            <MudPaper Class="pa-4">
+                <MudForm Spacing="1">
+                    <MudTextField @bind-Value="openedRecipe.Name" Immediate="true" Label="Recipe Name" />
+                    <MudPaper Class="pa-4">
+                        @for (int ingredientIndex = 0; ingredientIndex < selectedIngredients.Count(); ingredientIndex += 1)
+                        {
+                            int loopIndex = ingredientIndex;
+                            var ingredient = selectedIngredients[ingredientIndex];
+                            
+                            <MudStack Row="true">
+                                <MudAutocomplete T="Ingredient" @bind-Value="ingredient" Label="Ingredient" SearchFunc="SearchIngredients" ToStringFunc="@((ingredient) => ingredient?.Name ?? "")" />
+                                <MudNumericField @bind-Value="ingredientWeights[loopIndex]" Label="Required Weight" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" OnClick="@(e => RemoveIngredient(ingredient))"></MudIconButton>
+                            </MudStack>
+                        }
+                        <MudStack Row="true">
+                            <MudAutocomplete T="Ingredient" @bind-Value="addedIngredient" Label="Ingredient" SearchFunc="SearchIngredients" ToStringFunc="@((ingredient) => ingredient?.Name ?? "")" />
+                            <MudIconButton Disabled="addedIngredient == null" Icon="@Icons.Material.Filled.Add"  OnClick="@(e => AddIngredient(addedIngredient!))"></MudIconButton>
+                        </MudStack>
+                    </MudPaper>
+                </MudForm>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+    <MudGrid Justify="Justify.FlexEnd" Style="padding: 10px">
+        <MudItem>
+            <MudFab Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save" Label="Save Recipe" OnClick="@(e => SaveRecipe(openedRecipe))" />
+        </MudItem>
+    </MudGrid>
+    
+}
+
+@code {
+    private List<Recipe> recipes { get; set; } = new List<Recipe>();
+
+    private List<Ingredient> loadedIngredients { get; set; } = new List<Ingredient>();
+
+    private List<Ingredient> selectedIngredients { get; set; } = new List<Ingredient>();
+
+    private Ingredient? addedIngredient { get; set; }
+
+    private List<int> ingredientWeights { get; set; } = new List<int>();
+
+    private Recipe? openedRecipe = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var loadedRecipes = await InventoryRepository.GetRecipes();
+        recipes = loadedRecipes.ToList();
+
+        var loadedIngredients = await InventoryRepository.GetIngredients();
+        this.loadedIngredients = loadedIngredients.ToList();
+    }
+
+    private Task<IEnumerable<Ingredient>> SearchIngredients(string value, CancellationToken cancellationToken)
+    {
+        if(string.IsNullOrWhiteSpace(value))
+        {
+            return Task.FromResult(loadedIngredients.AsEnumerable());
+        }
+
+        return Task.FromResult(loadedIngredients.Where(x => x.Name.Contains(value, StringComparison.OrdinalIgnoreCase)));
+    }
+
+    private void OpenRecipePage(Recipe? recipe = null)
+    {
+        if(recipe is null)
+        {
+            recipe = new Recipe
+            {
+                Name = string.Empty,
+            };
+        }
+
+        selectedIngredients = recipe.Ingredients
+            .Select(ingredient => loadedIngredients.First(i => i.Id == ingredient.IngredientId))
+            .ToList();
+
+        ingredientWeights = recipe.Ingredients
+            .Select(ingredient => ingredient.RequiredWeight)
+            .ToList();
+
+        openedRecipe = recipe;
+    }
+
+    private void RemoveIngredient(Ingredient ingredient)
+    {
+        var index = selectedIngredients.IndexOf(ingredient);
+        selectedIngredients.RemoveAt(index);
+        ingredientWeights.RemoveAt(index);
+    }
+
+    private void AddIngredient(Ingredient ingredient)
+    {
+        selectedIngredients.Add(ingredient);
+        ingredientWeights.Add(0);
+        addedIngredient = null;
+    }
+
+    private async Task SaveRecipe(Recipe recipe)
+    {
+        var ingredients = selectedIngredients.Select((ingredient, index) => new RecipeToIngredient
+        {
+            IngredientId = ingredient.Id,
+            RecipeId = recipe.Id,
+            RequiredWeight = ingredientWeights[index]
+        });
+
+        recipe.Ingredients = ingredients.ToList();
+
+        if(recipe.Id == 0)
+        {
+            var insertedRecipe = await InventoryRepository.AddRecipe(recipe);
+            recipes.Add(insertedRecipe);
+        }
+        else
+        {
+            await InventoryRepository.UpdateRecipe(recipe);
+            recipes[recipes.FindIndex(x => x.Id == recipe.Id)] = recipe;
+        }
+
+        openedRecipe = null;
+    }
+
+    private async Task DeleteRecipe(int id)
+    {
+        await InventoryRepository.DeleteRecipe(id);
+        recipes.RemoveAll(x => x.Id == id);
+    }
+
+    private class IngredientOption
+    {
+        public required string IngredientName { get; set; }
+
+        public int Weight { get; set; }
+    }
+}

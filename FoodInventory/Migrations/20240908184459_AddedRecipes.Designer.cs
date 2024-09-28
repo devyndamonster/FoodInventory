@@ -3,6 +3,7 @@ using System;
 using FoodInventory.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace FoodInventory.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240908184459_AddedRecipes")]
+    partial class AddedRecipes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.8");
@@ -39,6 +42,9 @@ namespace FoodInventory.Migrations
                     b.Property<DateTime?>("OpenedOn")
                         .HasColumnType("TEXT");
 
+                    b.Property<int?>("RecipeId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTime?>("ThawedOn")
                         .HasColumnType("TEXT");
 
@@ -46,6 +52,8 @@ namespace FoodInventory.Migrations
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("RecipeId");
 
                     b.ToTable("Ingredients");
                 });
@@ -80,24 +88,16 @@ namespace FoodInventory.Migrations
                     b.ToTable("Recipes");
                 });
 
-            modelBuilder.Entity("FoodInventory.Models.RecipeToIngredient", b =>
+            modelBuilder.Entity("FoodInventory.Models.Ingredient", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                    b.HasOne("FoodInventory.Models.Recipe", null)
+                        .WithMany("Ingredients")
+                        .HasForeignKey("RecipeId");
+                });
 
-                    b.Property<int>("IngredientId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("RecipeId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("RequiredWeight")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("RecipeToIngredients");
+            modelBuilder.Entity("FoodInventory.Models.Recipe", b =>
+                {
+                    b.Navigation("Ingredients");
                 });
 #pragma warning restore 612, 618
         }
